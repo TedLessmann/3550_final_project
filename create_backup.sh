@@ -1,36 +1,47 @@
 #!/bin/bash
 
-# Select a source directory or
-# Use Zenity to select a source directory
-source_dir=$(zenity --file-selection --directory --title="Select the SOURCE directory to back up")
+# Use Zenity to prompt the user to select the SOURCE directory to back up
+# The selected directory path is stored in the variable "source_dir"
+source_dir=$(zenity --file-selection \
+    --directory \
+    --title="Select the SOURCE directory to back up")
 
-# Select the destination folder
-# Use Zenity to select the destination folder
-dest_dir=$(zenity --file-selection --directory --title="Select the DESTINATION directory")
-
-# If using Zeinty check if the user canceled the dialog
-if [[ -z "$source_dir" || -z "$dest_dir" ]]; then
-    zenity --error --text="Backup cancelled. No directory selected."
+# If the user cancels the dialog or no directory is selected, exit the script
+if [[ -z "$source_dir" ]]; then
+    zenity --error --text="No source directory selected. Backup cancelled."
     exit 1
 fi
 
-# Create a tarball of the source folder and backup
-timestamp=$(date +"%Y%m%d-%H%M%S")
-backup_name="backup-$(basename "$source_dir")-$timestamp.tar.gz"
-backup_path="$dest_dir/$backup_name"
+# Use Zenity to prompt the user to select the DESTINATION directory
+# The selected directory path is stored in the variable "dest_dir"
+dest_dir=$(zenity --file-selection \
+    --directory \
+    --title="Select the DESTINATION directory for the backup")
 
-tar -czf "$backup_path" -C "$(dirname "$source_dir")" "$(basename "$source_dir")"
-
-# If using Zenity display the success or failure of the backup
-if [[ $? -eq 0 ]]; then
-    zenity --info --text="Backup created successfully:\n$backup_path"
-else
-    zenity --error --text="Backup failed."
+# If the user cancels the dialog or no directory is selected, exit the script
+if [[ -z "$dest_dir" ]]; then
+    zenity --error --text="No destination directory selected. Backup cancelled."
+    exit 1
 fi
 
+# Generate a timestamp to uniquely identify the backup file
+timestamp=$(date +"%Y%m%d-%H%M%S")
 
+# Construct the backup filename using the source directory name and timestamp
+backup_name="backup-$(basename "$source_dir")-$timestamp.tar.gz"
+
+# Construct the full path where the backup will be saved
+backup_path="$dest_dir/$backup_name"
+
+# Create a compressed tar archive of the source directory
+# -c creates the archive
+# -z compresses it using gzip
+# -f specifies the output file name
+# -C changes to the parent directory so only the folder is archived
 if tar -czf "$backup_path" -C "$(dirname "$source_dir")" "$(basename "$source_dir")"; then
+    # If the backup succeeds, notify the user with Zenity
     zenity --info --text="Backup created successfully:\n$backup_path"
 else
+    # If the backup fails, notify the user with Zenity
     zenity --error --text="Backup failed."
 fi
